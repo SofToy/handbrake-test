@@ -15,6 +15,10 @@ on:
         description: "slow/fast"
         required: false
         default: "slow"
+      e:
+        description: "encoder x265 x265_10bit"
+        required: false
+        default: "x265_10bit"
 jobs:
   downloader:
     runs-on: ubuntu-20.04
@@ -43,11 +47,11 @@ jobs:
           mkdir temp -p
           find temp -type f -name '*.mp4' | while read f ; do
             echo "🔴 Start to encode ${f}"
-            flatpak run fr.handbrake.HandBrakeCLI -e x265 --encoder-preset ${{ github.event.inputs.q }} -x "aq-strength=0.7:aq-mode=3:bframes=8:psy-rd=1:deblock=1:1" -i "${f}" -o "${f}c.mp4" && rm "$f"
+            flatpak run fr.handbrake.HandBrakeCLI -e ${{ github.event.inputs.e }} --encoder-preset "${{ github.event.inputs.q }}" -x "aq-strength=0.7:aq-mode=3:bframes=8:psy-rd=1:deblock=1:1" -i "${f}" -o "${f}c.mp4" && rm "$f"
           done
           find temp -type f -name '*.mkv' | while read f ; do
             echo "🔴 Start to encode ${f}"
-            flatpak run fr.handbrake.HandBrakeCLI -e x265 --encoder-preset ${{ github.event.inputs.q }} -x "aq-strength=0.7:aq-mode=3:bframes=8:psy-rd=1:deblock=1:1" -i "${f}" -o "${f}c.mp4" && rm "$f"
+            flatpak run fr.handbrake.HandBrakeCLI -e ${{ github.event.inputs.e }} --encoder-preset "${{ github.event.inputs.q }}" -x "aq-strength=0.7:aq-mode=3:bframes=8:psy-rd=1:deblock=1:1" -i "${f}" -o "${f}c.mp4" && rm "$f"
           done
           ls temp -al 
           rclone copy ${{ github.event.inputs.to }}
