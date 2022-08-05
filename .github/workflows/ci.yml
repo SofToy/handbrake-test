@@ -20,7 +20,7 @@ on:
         required: false
         default: "x265_10bit"
       opt:
-        description: "more option"
+        description: "more option example:-X 1280 -Y 720 -r 24"
         required: false
         default: ""
 jobs:
