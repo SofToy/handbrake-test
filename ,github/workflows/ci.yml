@@ -1,0 +1,53 @@
+name: 256Test
+on:
+  repository_dispatch:
+  workflow_dispatch:
+    inputs:
+      from:
+        description: "rclone copy e.g. Mega:AutoDownloader/XXX ./temp"
+        required: true
+        default: "\"Mega:encoding\" ./temp"
+      to:
+        description: "after decode: rclone copy e.g. ./temp Mega:AutoDownloader"
+        required: false
+        default: "./temp Mega:AutoDownloader"
+      q:
+        description: "slow/fast"
+        required: false
+        default: "slow"
+jobs:
+  downloader:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2.0.0
+      - uses: FedericoCarboni/setup-ffmpeg@v1
+      - name: Set rclone and handbrake
+        run: |
+          sudo apt-get update -q >> log
+          sudo apt-get install -qqy ffmpeg flatpak >> log
+          wget "https://github.com/HandBrake/HandBrake/releases/download/1.4.2/HandBrakeCLI-1.4.2-x86_64.flatpak"
+          sudo flatpak install ./HandBrakeCLI-1.4.2-x86_64.flatpak  -y
+          curl https://rclone.org/install.sh | sudo bash >> log.txt
+          mkdir -p ~/.config/rclone/
+          cat >  ~/.config/rclone/rclone.conf  << EOF
+          ${{ secrets.RCLONE_CONF }}
+          EOF
+          mkdir -p ~/.aria2/
+          cat >  ~/.aria2/aria2.conf  << EOF
+          ${{ secrets.ARIA2_CONF }}
+          EOF
+      - run: |
+          set -x
+          echo "copy now"
+          rclone -v copy ${{ github.event.inputs.from }}
+          mkdir temp -p
+          find temp -type f -name '*.mp4' | while read f ; do
+            echo "🔴 Start to encode ${f}"
+            flatpak run fr.handbrake.HandBrakeCLI -e x265_10bit --encoder-preset ${{ github.event.inputs.q }} -x "aq-strength=0.7:aq-mode=3:bframes=8:psy-rd=1:deblock=1:1" -i "${f}" -o "${f}c.mp4" && rm "$f"
+          done
+          find temp -type f -name '*.mkv' | while read f ; do
+            echo "🔴 Start to encode ${f}"
+            flatpak run fr.handbrake.HandBrakeCLI -e x265_10bit --encoder-preset ${{ github.event.inputs.q }} -x "aq-strength=0.7:aq-mode=3:bframes=8:psy-rd=1:deblock=1:1" -i "${f}" -o "${f}c.mp4" && rm "$f"
+          done
+          ls temp -al 
+          rclone copy ${{ github.event.inputs.to }}
